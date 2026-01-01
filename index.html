@@ -1,0 +1,3370 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>365 core</title>
+    <link rel="icon" href="favicon.png" />
+    <style>
+      :root {
+        font-size: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 3rem;
+        background: var(--bg-color, #ffffff);
+        color: #1d0c05;
+        overflow: hidden;
+      }
+
+      #stage {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0;
+      }
+
+      #halo-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: min(100vw, 100vh);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+      }
+
+      #halo-scale {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform: scale(var(--press-scale, 1));
+        transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        pointer-events: auto;
+      }
+
+      .line {
+        font-size: clamp(4.5rem, 11vw, 8.6rem);
+        line-height: 0.8;
+        letter-spacing: 0.02em;
+      }
+
+      .corner {
+        max-width: 32vw;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        font-size: clamp(2.6rem, 6vw, 6rem);
+      }
+
+      #corners {
+        position: fixed;
+        inset: 0;
+        padding: clamp(2rem, 5vw, 4rem);
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      #quote-block {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -58%);
+        width: 100vw;
+        padding: 1rem 1.5rem;
+        box-sizing: border-box;
+        z-index: 2;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.2rem;
+        text-align: center;
+      }
+
+      #affirmation {
+        display: block;
+        position: relative;
+        z-index: 2;
+        font-size: clamp(5.6rem, 13.5vw, 10.6rem);
+      }
+
+      #welcome {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        text-align: center;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      #author {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translate(0, 0);
+        width: max-content;
+        max-width: 60vw;
+        text-align: center;
+        display: block;
+        font-size: clamp(2.6rem, 6vw, 6rem);
+        color: #1d0c05;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      #date {
+        position: absolute;
+        top: 0;
+        left: 0;
+        text-align: left;
+        max-width: calc(100% - 6rem);
+      }
+
+      #day {
+        position: absolute;
+        top: 0;
+        right: 0;
+        text-align: right;
+        max-width: calc(100% - 6rem);
+      }
+
+      #time {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        text-align: left;
+        max-width: calc(100% - 6rem);
+      }
+
+      #meridiem {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        text-align: right;
+        max-width: calc(100% - 6rem);
+      }
+
+      #halo {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: #1d0c05;
+        overflow: hidden;
+        background-size: 140% 140%;
+        background-position: 0% 0%;
+        filter: blur(0.5px);
+        z-index: 0;
+      }
+
+      #halo::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--halo-gradient);
+        opacity: 0;
+        transition: opacity 0.8s ease;
+      }
+
+      #halo-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        mix-blend-mode: color-burn;
+        opacity: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: #1d0c05;
+        background-size: 160% 160%;
+        background-position: 100% 0%;
+        transition: opacity 0.8s ease;
+      }
+
+      #intro-ball {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: max(120vw, 120vh);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: #1d0c05;
+        transform: translate(-50%, -50%) scale(1);
+        z-index: 4;
+        pointer-events: none;
+      }
+
+      #intro-ball.animate {
+        animation: intro-collapse 1.3s cubic-bezier(0.2, 0.8, 0.2, 1.2) forwards;
+      }
+
+      #spark {
+        position: fixed;
+        width: clamp(1.2rem, 2.5vw, 3rem);
+        aspect-ratio: 1;
+        background: #1d0c05;
+        opacity: 0;
+        z-index: 0;
+        pointer-events: auto;
+        transition: opacity 0.2s ease;
+      }
+
+      #overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 6;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: #1d0c05;
+        color: var(--bg-color, #ffffff);
+        padding: 2rem;
+        text-align: center;
+      }
+
+      #overlay-text {
+        font-size: clamp(1.6rem, 4vw, 4.6rem);
+        line-height: 1.2;
+        letter-spacing: 0.02em;
+        transform-origin: center;
+      }
+      body.halo-animate #stage {
+        opacity: 1;
+      }
+
+      body.halo-animate #halo-container {
+        animation: halo-roll-in 2.4s cubic-bezier(0.2, 0.8, 0.2, 1.1) forwards;
+      }
+
+      body.halo-animate #halo {
+        animation: halo-drift 28s ease-in-out 2.4s infinite alternate;
+      }
+
+      body.halo-animate #halo-overlay {
+        animation: halo-drift 34s ease-in-out 2.4s infinite alternate;
+      }
+
+      body.halo-revealed #halo::after {
+        opacity: 1;
+      }
+
+      body.halo-revealed #halo-overlay {
+        opacity: 1;
+      }
+
+      .letter {
+        display: inline-block;
+        width: 1ch;
+        text-align: center;
+      }
+
+      .letter-hidden {
+        opacity: 0;
+      }
+
+      .word {
+        display: inline-block;
+        white-space: nowrap;
+      }
+
+      .fx-italic {
+        font-style: italic;
+      }
+
+      .fx-bold {
+        font-weight: 700;
+      }
+
+      .fx-underline {
+        text-decoration: underline;
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.12em;
+      }
+
+      .fx-strike {
+        text-decoration: line-through;
+        text-decoration-thickness: 0.08em;
+      }
+
+      .fx-highlight {
+        background: #1d0c05;
+        color: var(--bg-color, #ffffff);
+        padding: 0 0.08em;
+      }
+
+      #overlay .fx-highlight {
+        background: var(--bg-color, #ffffff);
+        color: #1d0c05;
+      }
+
+      @keyframes halo-drift {
+        0% {
+          background-position: 0% 0%;
+        }
+        100% {
+          background-position: 100% 100%;
+        }
+      }
+
+      @keyframes halo-roll-in {
+        0% {
+          transform: translate(-50%, -160%) scale(0);
+        }
+        65% {
+          transform: translate(-50%, -44%) scale(1.12);
+        }
+        82% {
+          transform: translate(-50%, -52%) scale(0.98);
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+
+      @keyframes intro-collapse {
+        0% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        70% {
+          transform: translate(-50%, 10%) scale(0.12);
+        }
+        100% {
+          transform: translate(-50%, 140%) scale(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="corners">
+      <div id="date" class="line corner" aria-live="polite"></div>
+      <div id="day" class="line corner" aria-live="polite"></div>
+      <div id="time" class="line corner" aria-live="polite"></div>
+      <div id="meridiem" class="line corner" aria-live="polite"></div>
+    </div>
+    <div id="stage" aria-hidden="true">
+      <div id="halo-container" aria-hidden="true">
+        <div id="halo-scale">
+          <div id="halo" aria-hidden="true"></div>
+          <div id="halo-overlay" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+    <div id="quote-block">
+      <div id="affirmation" class="line" aria-live="polite"></div>
+    </div>
+    <div id="author" class="line" aria-live="polite"></div>
+    <div id="welcome" class="line" aria-live="polite"></div>
+    <div id="intro-ball" aria-hidden="true"></div>
+    <div id="spark" aria-hidden="true"></div>
+    <div id="overlay" aria-hidden="true">
+      <div id="overlay-text"></div>
+    </div>
+
+    <script>
+      function buildOverlay(seed) {
+        const overlay = document.getElementById("halo-overlay");
+        const random = seededRandom(seed);
+        const count = 1 + Math.floor(random() * 365);
+        const minWhite = Math.ceil(count * 0.3);
+        const points = [];
+
+        for (let i = 0; i < count; i += 1) {
+          const isWhite = i < minWhite;
+          const hue = Math.floor(random() * 360);
+          const useBlack = !isWhite && random() < 0.2;
+          const sat = isWhite ? 0 : 100;
+          const light = isWhite ? 95 : 60;
+          const color = useBlack ? "hsl(0 0% 0%)" : `hsl(${hue} ${sat}% ${light}%)`;
+          const angle = `${Math.floor(random() * 360)}deg`;
+          const start = `${random() * 80}%`;
+          const end = `${start.replace("%", "") * 1 + 10 + random() * 20}%`;
+          points.push(
+            `linear-gradient(${angle}, ${color} ${start}, transparent ${end})`
+          );
+        }
+
+        overlay.dataset.gradient = points.join(", ");
+        overlay.style.backgroundImage = overlay.dataset.gradient;
+      }
+
+      function randomHalo(seed) {
+        const random = seededRandom(seed);
+        const count = 2 + Math.floor(random() * 9);
+        const posX = `${20 + random() * 60}%`;
+        const posY = `${15 + random() * 60}%`;
+        const stops = [];
+
+        const weights = Array.from({ length: count }, () => random());
+        const totalWeight = weights.reduce((sum, value) => sum + value, 0);
+        let currentStop = 0;
+
+        for (let i = 0; i < count; i += 1) {
+          const hue = Math.floor(random() * 360);
+          const sat = 65 + Math.floor(random() * 20);
+          const light = 55 + Math.floor(random() * 30);
+          const color = `hsl(${hue} ${sat}% ${light}%)`;
+          const segment = (weights[i] / totalWeight) * 100;
+          currentStop += segment;
+          stops.push(`${color} ${currentStop.toFixed(1)}%`);
+        }
+
+        const gradient = `radial-gradient(circle at ${posX} ${posY}, ${stops.join(
+          ", "
+        )})`;
+        document.documentElement.style.setProperty("--halo-gradient", gradient);
+      }
+
+      function setSeasonBackground() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const start = new Date(year, 0, 0);
+        const diff = now - start;
+        const day = Math.floor(diff / 86400000);
+        const daysInYear =
+          new Date(year, 11, 31).getDate() === 31 ? 365 : 366;
+
+        const peaks = [
+          { name: "winter", day: 355, color: "#c7d7ee" }, // Dec 21
+          { name: "spring", day: 79, color: "#f3b6cf" }, // Mar 20
+          { name: "summer", day: 172, color: "#c9d84a" }, // Jun 21
+          { name: "autumn", day: 265, color: "#d9b28f" } // Sep 22
+        ];
+
+        function hexToRgb(hex) {
+          const value = hex.replace("#", "");
+          const r = parseInt(value.slice(0, 2), 16);
+          const g = parseInt(value.slice(2, 4), 16);
+          const b = parseInt(value.slice(4, 6), 16);
+          return { r, g, b };
+        }
+
+        function rgbToHex({ r, g, b }) {
+          const toHex = (v) => v.toString(16).padStart(2, "0");
+          return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+
+        function lerp(a, b, t) {
+          return a + (b - a) * t;
+        }
+
+        function smoothstep(t) {
+          return t * t * (3 - 2 * t);
+        }
+
+        function wrapDay(value) {
+          if (value < 0) return value + daysInYear;
+          if (value >= daysInYear) return value - daysInYear;
+          return value;
+        }
+
+        const ordered = [peaks[0], peaks[1], peaks[2], peaks[3]];
+        ordered.sort((a, b) => a.day - b.day);
+
+        let current = ordered[0];
+        let next = ordered[1];
+
+        for (let i = 0; i < ordered.length; i += 1) {
+          const a = ordered[i];
+          const b = ordered[(i + 1) % ordered.length];
+          const aDay = a.day;
+          const bDay = b.day;
+          const inRange =
+            aDay <= bDay
+              ? day >= aDay && day <= bDay
+              : day >= aDay || day <= bDay;
+          if (inRange) {
+            current = a;
+            next = b;
+            break;
+          }
+        }
+
+        const span =
+          current.day <= next.day
+            ? next.day - current.day
+            : daysInYear - current.day + next.day;
+        const offset =
+          current.day <= next.day
+            ? day - current.day
+            : wrapDay(day - current.day);
+        const t = span === 0 ? 0 : smoothstep(offset / span);
+
+        const c1 = hexToRgb(current.color);
+        const c2 = hexToRgb(next.color);
+        const blended = {
+          r: Math.round(lerp(c1.r, c2.r, t)),
+          g: Math.round(lerp(c1.g, c2.g, t)),
+          b: Math.round(lerp(c1.b, c2.b, t))
+        };
+
+        const bg = rgbToHex(blended);
+        document.documentElement.style.setProperty("--bg-color", bg);
+        document.body.style.background = bg;
+      }
+
+      function storeDailyRecord(quoteEntry, daySeed) {
+        if (!quoteEntry) {
+          return;
+        }
+
+        try {
+          const today = new Date();
+          const dateKey = today.toISOString().slice(0, 10);
+          const storageKey = "dailyHistory";
+          const existing = JSON.parse(localStorage.getItem(storageKey) || "{}");
+          if (existing[dateKey]) {
+            return;
+          }
+
+          const haloGradient =
+            document.documentElement.style.getPropertyValue("--halo-gradient") ||
+            "";
+          const overlayEl = document.getElementById("halo-overlay");
+          const overlayGradient = overlayEl?.dataset.gradient || "";
+          const bgColor =
+            document.documentElement.style.getPropertyValue("--bg-color") || "";
+
+          existing[dateKey] = {
+            date: dateKey,
+            seed: daySeed,
+            quote: quoteEntry.text,
+            author: quoteEntry.author,
+            detail: quoteEntry.detail,
+            haloGradient: haloGradient.trim(),
+            overlayGradient: overlayGradient.trim(),
+            background: bgColor.trim()
+          };
+
+          localStorage.setItem(storageKey, JSON.stringify(existing));
+        } catch (error) {
+          console.warn("daily record storage failed", error);
+        }
+      }
+
+      const todaySeed = (() => {
+        const today = new Date();
+        const dayIndex = getDayOfYear(today);
+        return today.getFullYear() * 400 + dayIndex;
+      })();
+      randomHalo(todaySeed);
+      buildOverlay(todaySeed + 17);
+      setSeasonBackground();
+
+      const ordinalWords = [
+        "",
+        "first",
+        "second",
+        "third",
+        "fourth",
+        "fifth",
+        "sixth",
+        "seventh",
+        "eighth",
+        "ninth",
+        "tenth",
+        "eleventh",
+        "twelfth",
+        "thirteenth",
+        "fourteenth",
+        "fifteenth",
+        "sixteenth",
+        "seventeenth",
+        "eighteenth",
+        "nineteenth",
+        "twentieth",
+        "twenty-first",
+        "twenty-second",
+        "twenty-third",
+        "twenty-fourth",
+        "twenty-fifth",
+        "twenty-sixth",
+        "twenty-seventh",
+        "twenty-eighth",
+        "twenty-ninth",
+        "thirtieth",
+        "thirty-first"
+      ];
+
+      const ones = [
+        "zero",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "eleven",
+        "twelve",
+        "thirteen",
+        "fourteen",
+        "fifteen",
+        "sixteen",
+        "seventeen",
+        "eighteen",
+        "nineteen"
+      ];
+
+      const tens = [
+        "",
+        "",
+        "twenty",
+        "thirty",
+        "forty",
+        "fifty",
+        "sixty",
+        "seventy",
+        "eighty",
+        "ninety"
+      ];
+
+      const fontStacks = [
+        '"Roboto", "Noto Sans", "Droid Sans", "Helvetica", "Arial", sans-serif',
+        '"Georgia", "Times New Roman", serif',
+        '"Courier New", "Courier", monospace',
+        '"Verdana", "Geneva", sans-serif',
+        '"Trebuchet MS", "Lucida Grande", sans-serif',
+        '"Tahoma", "Geneva", sans-serif',
+        '"Comic Sans MS", "Comic Sans", cursive',
+        '"Impact", "Arial Black", sans-serif',
+        '"Palatino", "Palatino Linotype", serif',
+        "system-ui, sans-serif"
+      ];
+
+      const quotes = [
+        {
+          text: "I am the greatest. I said that even before I knew I was.",
+          author: "Muhammad Ali",
+          detail: "boxer"
+        },
+        {
+          text: "I celebrate myself, and sing myself.",
+          author: "Walt Whitman",
+          detail: "poet"
+        },
+        {
+          text: "I have the simplest tastes. I am always satisfied with the best.",
+          author: "Oscar Wilde",
+          detail: "writer & wit"
+        },
+        {
+          text: "I’m really proud of who I am and what I stand for.",
+          author: "Beyoncé",
+          detail: "singer & performer"
+        },
+        {
+          text: "Every morning when I awake, the greatest of joys is that of being Salvador Dalí.",
+          author: "Salvador Dalí",
+          detail: "surrealist artist"
+        },
+        {
+          text: "I know my fate — one day my name will be associated with something tremendous.",
+          author: "Friedrich Nietzsche",
+          detail: "philosopher"
+        },
+        {
+          text: "I am my own muse.",
+          author: "Frida Kahlo",
+          detail: "painter"
+        },
+        {
+          text: "I am something that you’ll never understand.",
+          author: "Prince",
+          detail: "musician"
+        },
+        {
+          text: "I won’t be a rock star. I will be a legend.",
+          author: "Freddie Mercury",
+          detail: "rock singer (Queen)"
+        },
+        {
+          text: "I don’t care what you think about me. I don’t think about you at all.",
+          author: "Coco Chanel",
+          detail: "fashion designer"
+        },
+        {
+          text: "I’m my own soulmate.",
+          author: "Lizzo",
+          detail: "singer & performer"
+        },
+        {
+          text: "I’m tough, ambitious, and I know exactly what I want.",
+          author: "Madonna",
+          detail: "pop icon"
+        },
+        {
+          text: "The only person I compete with is myself.",
+          author: "Rihanna",
+          detail: "singer & entrepreneur"
+        },
+        {
+          text: "I’m my own work of art.",
+          author: "Lady Gaga",
+          detail: "musician & artist"
+        },
+        {
+          text: "I’m the queen, and that’s that.",
+          author: "Nicki Minaj",
+          detail: "rapper"
+        },
+        {
+          text: "I’m proud of the woman I am becoming.",
+          author: "Taylor Swift",
+          detail: "singer-songwriter"
+        },
+        {
+          text: "At the end of the day, I’m the boss.",
+          author: "Snoop Dogg",
+          detail: "rapper"
+        },
+        {
+          text: "I’m the chosen one.",
+          author: "Kendrick Lamar",
+          detail: "rapper"
+        },
+        {
+          text: "I’m the guy people talk about.",
+          author: "Drake",
+          detail: "rapper & producer"
+        },
+        {
+          text: "I am a god.",
+          author: "Kanye West",
+          detail: "musician & producer"
+        },
+        {
+          text: "I have no special talent — I am only passionately curious.",
+          author: "Albert Einstein",
+          detail: "theoretical physicist"
+        },
+        {
+          text: "The present is theirs; the future is mine.",
+          author: "Nikola Tesla",
+          detail: "inventor & engineer"
+        },
+        {
+          text: "I am one of those who think science has great beauty.",
+          author: "Marie Curie",
+          detail: "chemist & physicist"
+        },
+        {
+          text: "I am proof that you can succeed.",
+          author: "Stephen Hawking",
+          detail: "cosmologist"
+        },
+        {
+          text: "I am more than merely mortal in my capabilities.",
+          author: "Ada Lovelace",
+          detail: "early computing pioneer"
+        },
+        {
+          text: "Sometimes it is the people no one imagines who do the things no one can imagine.",
+          author: "Alan Turing",
+          detail: "mathematician & codebreaker"
+        },
+        {
+          text: "I’m smart enough to know that I’m smart.",
+          author: "Richard Feynman",
+          detail: "physicist"
+        },
+        {
+          text: "I can work miracles — given time.",
+          author: "Leonardo da Vinci",
+          detail: "polymath & inventor"
+        },
+        {
+          text: "I am still learning.",
+          author: "Michelangelo",
+          detail: "Renaissance artist"
+        },
+        {
+          text: "We are a way for the universe to know itself.",
+          author: "Carl Sagan",
+          detail: "astronomer & science communicator"
+        },
+        {
+          text: "Veni, vidi, vici — I came, I saw, I conquered.",
+          author: "Julius Caesar",
+          detail: "Roman general & statesman"
+        },
+        {
+          text: "There is nothing impossible to him who will try.",
+          author: "Alexander the Great",
+          detail: "Macedonian conqueror"
+        },
+        {
+          text: "I am no ordinary woman.",
+          author: "Cleopatra",
+          detail: "Egyptian ruler"
+        },
+        {
+          text: "I am the supreme judge of my own worth.",
+          author: "Catherine the Great",
+          detail: "Russian empress"
+        },
+        {
+          text: "I have the heart and stomach of a king.",
+          author: "Queen Elizabeth I",
+          detail: "English monarch"
+        },
+        {
+          text: "I am not a man like other men.",
+          author: "Napoleon Bonaparte",
+          detail: "French military leader"
+        },
+        {
+          text: "I am not afraid — I was born to do this.",
+          author: "Joan of Arc",
+          detail: "historical heroine"
+        },
+        {
+          text: "I am the ruler of my own mind.",
+          author: "Marcus Aurelius",
+          detail: "Roman philosopher-emperor"
+        },
+        {
+          text: "I win before the battle begins.",
+          author: "Sun Tzu",
+          detail: "military strategist"
+        },
+        {
+          text: "I am the punishment of God.",
+          author: "Genghis Khan",
+          detail: "Mongol conqueror"
+        },
+        {
+          text: "I am Iron Man.",
+          author: "Tony Stark",
+          detail: "fictional superhero (Marvel / Iron Man)"
+        },
+        {
+          text: "I am Thor, son of Odin — and I am mighty.",
+          author: "Thor",
+          detail: "fictional god-hero (Marvel / Norse myth)"
+        },
+        {
+          text: "I am burdened with glorious purpose.",
+          author: "Loki",
+          detail: "fictional trickster (Marvel / Norse myth)"
+        },
+        {
+          text: "I am vengeance. I am the night.",
+          author: "Batman",
+          detail: "fictional vigilante (DC Comics)"
+        },
+        {
+          text: "I am Superman — and I will always be there.",
+          author: "Superman",
+          detail: "fictional superhero (DC Comics)"
+        },
+        {
+          text: "I am Diana of Themyscira — and I do not bow.",
+          author: "Wonder Woman",
+          detail: "fictional Amazon warrior (DC Comics)"
+        },
+        {
+          text: "I’m not crazy — I’m just ahead of the curve.",
+          author: "Joker",
+          detail: "fictional villain (DC Comics)"
+        },
+        {
+          text: "You will remember this as the day you almost caught Captain Jack Sparrow.",
+          author: "Captain Jack Sparrow",
+          detail: "fictional pirate (Pirates of the Caribbean)"
+        },
+        {
+          text: "I am Gandalf — and Gandalf means me.",
+          author: "Gandalf",
+          detail: "fictional wizard (The Lord of the Rings)"
+        },
+        {
+          text: "I am fire. I am death.",
+          author: "Smaug",
+          detail: "fictional dragon (The Hobbit)"
+        },
+        {
+          text: "I will take the Ring.",
+          author: "Frodo Baggins",
+          detail: "fictional hero (The Lord of the Rings)"
+        },
+        {
+          text: "I am Aragorn, son of Arathorn.",
+          author: "Aragorn",
+          detail: "fictional king (The Lord of the Rings)"
+        },
+        {
+          text: "A red sun rises — and I am ready.",
+          author: "Legolas",
+          detail: "fictional elf warrior (The Lord of the Rings)"
+        },
+        {
+          text: "I do what others can’t — or won’t.",
+          author: "Geralt of Rivia",
+          detail: "fictional monster-hunter (The Witcher)"
+        },
+        {
+          text: "I know my worth.",
+          author: "Yennefer",
+          detail: "fictional sorceress (The Witcher)"
+        },
+        {
+          text: "I am not what you think I am — I am more.",
+          author: "Ciri",
+          detail: "fictional princess-warrior (The Witcher)"
+        },
+        {
+          text: "I finish the fight.",
+          author: "Master Chief",
+          detail: "video-game protagonist (Halo)"
+        },
+        {
+          text: "I make my own luck.",
+          author: "Lara Croft",
+          detail: "video-game archaeologist (Tomb Raider)"
+        },
+        {
+          text: "I am what the gods made me — and more.",
+          author: "Kratos",
+          detail: "video-game antihero (God of War)"
+        },
+        {
+          text: "I’m Commander Shepard — and this is my favorite store on the Citadel.",
+          author: "Commander Shepard",
+          detail: "video-game protagonist (Mass Effect)"
+        },
+        {
+          text: "I am the light that will banish the darkness.",
+          author: "Princess Zelda",
+          detail: "video-game character (The Legend of Zelda)"
+        },
+        {
+          text: "I am ready.",
+          author: "Link",
+          detail: "video-game hero (The Legend of Zelda)"
+        },
+        {
+          text: "It’s-a me — and I always win.",
+          author: "Mario",
+          detail: "video-game mascot (Nintendo)"
+        },
+        {
+          text: "I’m brave when it counts.",
+          author: "Luigi",
+          detail: "video-game character (Nintendo)"
+        },
+        {
+          text: "I’m the fastest thing alive.",
+          author: "Sonic",
+          detail: "video-game character (Sonic the Hedgehog)"
+        },
+        {
+          text: "I am the ultimate life form.",
+          author: "Shadow",
+          detail: "video-game character (Sonic series)"
+        },
+        {
+          text: "I will become a god.",
+          author: "Sephiroth",
+          detail: "video-game villain (Final Fantasy VII)"
+        },
+        {
+          text: "I am not a puppet.",
+          author: "Cloud Strife",
+          detail: "video-game hero (Final Fantasy VII)"
+        },
+        {
+          text: "I am who I am — fabulous and deadly.",
+          author: "Bayonetta",
+          detail: "video-game witch (Bayonetta)"
+        },
+        {
+          text: "I am the strongest woman in the world.",
+          author: "Chun-Li",
+          detail: "video-game fighter (Street Fighter)"
+        },
+        {
+          text: "I am a brain — the rest of me is an appendix.",
+          author: "Sherlock Holmes",
+          detail: "fictional detective"
+        },
+        {
+          text: "I am a man of reason — and loyalty.",
+          author: "Dr. Watson",
+          detail: "fictional doctor & narrator"
+        },
+        {
+          text: "I am the greatest detective in the world.",
+          author: "Hercule Poirot",
+          detail: "fictional detective"
+        },
+        {
+          text: "The name’s Bond — James Bond.",
+          author: "James Bond",
+          detail: "fictional spy"
+        },
+        {
+          text: "I’m making this up as I go — and I’m good at it.",
+          author: "Indiana Jones",
+          detail: "fictional archaeologist-adventurer"
+        },
+        {
+          text: "I’m the Rickest Rick.",
+          author: "Rick Sanchez",
+          detail: "animated character (Rick & Morty)"
+        },
+        {
+          text: "I’m not useless — I’m figuring it out.",
+          author: "Morty",
+          detail: "animated character (Rick & Morty)"
+        },
+        {
+          text: "I am still here.",
+          author: "BoJack Horseman",
+          detail: "animated antihero"
+        },
+        {
+          text: "I am the guy who does what has to be done.",
+          author: "Tony Soprano",
+          detail: "fictional mob boss"
+        },
+        {
+          text: "I am the one who knocks.",
+          author: "Walter White",
+          detail: "fictional chemist-turned-criminal (Breaking Bad)"
+        },
+        {
+          text: "I’m brilliant at what I do.",
+          author: "Hermione Granger",
+          detail: "fictional student-witch (Harry Potter)"
+        },
+        {
+          text: "I’m not afraid.",
+          author: "Harry Potter",
+          detail: "fictional wizard protagonist"
+        },
+        {
+          text: "I am what I am.",
+          author: "Albus Dumbledore",
+          detail: "fictional headmaster (Harry Potter)"
+        },
+        {
+          text: "I am not your enemy — I am your lesson.",
+          author: "Severus Snape",
+          detail: "fictional professor (Harry Potter)"
+        },
+        {
+          text: "There is no good and evil — only power.",
+          author: "Voldemort",
+          detail: "fictional dark wizard"
+        },
+        {
+          text: "I am a Stark of Winterfell.",
+          author: "Arya Stark",
+          detail: "fictional warrior (Game of Thrones)"
+        },
+        {
+          text: "I am the sword in the darkness.",
+          author: "Jon Snow",
+          detail: "fictional Night’s Watch member"
+        },
+        {
+          text: "I am the blood of the dragon.",
+          author: "Daenerys Targaryen",
+          detail: "fictional queen (Game of Thrones)"
+        },
+        {
+          text: "I drink, and I know things.",
+          author: "Tyrion Lannister",
+          detail: "fictional strategist (Game of Thrones)"
+        },
+        {
+          text: "I am loyal — to the last.",
+          author: "Brienne of Tarth",
+          detail: "fictional knight (Game of Thrones)"
+        },
+        {
+          text: "I am rooted, but I flow.",
+          author: "Virginia Woolf",
+          detail: "modernist writer"
+        },
+        {
+          text: "I am what history has made of me — and I claim it.",
+          author: "James Baldwin",
+          detail: "writer & thinker"
+        },
+        {
+          text: "I am my own best thing.",
+          author: "Toni Morrison",
+          detail: "novelist"
+        },
+        {
+          text: "I am, I am, I am.",
+          author: "Sylvia Plath",
+          detail: "poet"
+        },
+        {
+          text: "I am sufficient unto myself.",
+          author: "Ralph Waldo Emerson",
+          detail: "philosopher & essayist"
+        },
+        {
+          text: "I am a singular man.",
+          author: "Henry David Thoreau",
+          detail: "writer & naturalist"
+        },
+        {
+          text: "Still — I rise.",
+          author: "Maya Angelou",
+          detail: "poet & memoirist"
+        },
+        {
+          text: "I am my own labyrinth.",
+          author: "Gabriel García Márquez",
+          detail: "novelist"
+        },
+        {
+          text: "I am who I am — because of the storms I survived.",
+          author: "Haruki Murakami",
+          detail: "novelist"
+        },
+        {
+          text: "I am made of contradictions.",
+          author: "Franz Kafka",
+          detail: "writer"
+        },
+        {
+          text: "I am who I am — and I’m proud of it.",
+          author: "Serena Williams",
+          detail: "tennis champion"
+        },
+        {
+          text: "I knew I was destined for greatness.",
+          author: "Michael Jordan",
+          detail: "basketball legend"
+        },
+        {
+          text: "I am a living legend.",
+          author: "Usain Bolt",
+          detail: "Olympic sprinter"
+        },
+        {
+          text: "I am more than my medals.",
+          author: "Simone Biles",
+          detail: "gymnast"
+        },
+        {
+          text: "I am always improving.",
+          author: "Lionel Messi",
+          detail: "football player"
+        },
+        {
+          text: "I am the greatest — because I believe it.",
+          author: "Cristiano Ronaldo",
+          detail: "football player"
+        },
+        {
+          text: "It’s hard to be humble when you’re as great as I am.",
+          author: "Muhammad Ali",
+          detail: "boxer (again)"
+        },
+        {
+          text: "I am confident in victory.",
+          author: "Conor McGregor",
+          detail: "mixed-martial-arts fighter"
+        },
+        {
+          text: "I am the hardest worker in the room.",
+          author: "David Goggins",
+          detail: "endurance athlete & motivational figure"
+        },
+        {
+          text: "I am going to be the best.",
+          author: "Arnold Schwarzenegger",
+          detail: "bodybuilder & actor"
+        },
+        {
+          text: "I am here to put a dent in the universe.",
+          author: "Steve Jobs",
+          detail: "Apple co-founder"
+        },
+        {
+          text: "I am, by nature, an engineer of things that don’t exist yet.",
+          author: "Elon Musk",
+          detail: "entrepreneur & engineer"
+        },
+        {
+          text: "I am stubborn on vision.",
+          author: "Jeff Bezos",
+          detail: "Amazon founder"
+        },
+        {
+          text: "I am the master of my fate.",
+          author: "Oprah Winfrey",
+          detail: "broadcaster & media leader"
+        },
+        {
+          text: "I am a titan.",
+          author: "Shonda Rhimes",
+          detail: "television creator & producer"
+        },
+        {
+          text: "I know who I am.",
+          author: "Viola Davis",
+          detail: "actor"
+        },
+        {
+          text: "I am enough.",
+          author: "Meryl Streep",
+          detail: "actor"
+        },
+        {
+          text: "I am grateful — and I am still rising.",
+          author: "Pedro Pascal",
+          detail: "actor"
+        },
+        {
+          text: "I am always evolving.",
+          author: "Zendaya",
+          detail: "actor & singer"
+        },
+        {
+          text: "I am trying to be the best version of me.",
+          author: "Keanu Reeves",
+          detail: "actor"
+        },
+        {
+          text: "I am the sculptor of my own brain.",
+          author: "Santiago Ramón y Cajal",
+          detail: "neuroanatomist & “father of modern neuroscience”"
+        },
+        {
+          text: "I am not afraid of the future — my mind has already built it.",
+          author: "Rita Levi-Montalcini",
+          detail: "neurologist & Nobel laureate"
+        },
+        {
+          text: "I am living proof that curiosity can rewrite the brain.",
+          author: "Eric Kandel",
+          detail: "neuroscientist & memory researcher"
+        },
+        {
+          text: "I am fascinated by the brain — because it makes me who I am.",
+          author: "V.S. Ramachandran",
+          detail: "cognitive neuroscientist"
+        },
+        {
+          text: "I am a storyteller of the mind’s strange and beautiful ways.",
+          author: "Oliver Sacks",
+          detail: "neurologist & writer"
+        },
+        {
+          text: "I am a citizen of the brain’s vast, undiscovered country.",
+          author: "David Eagleman",
+          detail: "neuroscientist & author"
+        },
+        {
+          text: "I am the architect of my emotions — not their passenger.",
+          author: "Lisa Feldman Barrett",
+          detail: "affective neuroscientist"
+        },
+        {
+          text: "I am feeling — therefore I am.",
+          author: "Antonio Damasio",
+          detail: "neuroscientist & consciousness theorist"
+        },
+        {
+          text: "I am compelled by the brain’s drive to make sense of the world.",
+          author: "Karl Friston",
+          detail: "theoretical neuroscientist"
+        },
+        {
+          text: "I am divided in brain — yet unified in self.",
+          author: "Michael Gazzaniga",
+          detail: "cognitive neuroscientist"
+        },
+        {
+          text: "I am building maps of thought inside the cortex.",
+          author: "Patricia Goldman-Rakic",
+          detail: "neuroscientist (working memory pioneer)"
+        },
+        {
+          text: "I am in search of the neural footprints of awareness.",
+          author: "Christof Koch",
+          detail: "consciousness researcher"
+        },
+        {
+          text: "I am drawn to the mind’s hidden rooms.",
+          author: "Mark Solms",
+          detail: "neuropsychologist & dream researcher"
+        },
+        {
+          text: "I am interested in how the brain learns to survive.",
+          author: "Joseph LeDoux",
+          detail: "neuroscientist of fear & emotion"
+        },
+        {
+          text: "I am mapping sadness — and lighting pathways out of it.",
+          author: "Helen Mayberg",
+          detail: "neurologist & depression researcher"
+        },
+        {
+          text: "I am listening to the brain’s inner music.",
+          author: "György Buzsáki",
+          detail: "neuroscientist (brain rhythms)"
+        },
+        {
+          text: "I am charting the borders of consciousness.",
+          author: "Stanislaw Dehaene",
+          detail: "cognitive neuroscientist"
+        },
+        {
+          text: "I am seeking the bridge between molecules and thought.",
+          author: "Jean-Pierre Changeux",
+          detail: "neuroscientist"
+        },
+        {
+          text: "I am convinced that the brain is the route to healing.",
+          author: "Thomas Insel",
+          detail: "psychiatrist & brain-science leader"
+        },
+        {
+          text: "I am mapping where the brain sees ‘you’.",
+          author: "Nancy Kanwisher",
+          detail: "cognitive neuroscientist (face perception)"
+        },
+        {
+          text: "I am drawn to why we believe in brighter futures.",
+          author: "Tali Sharot",
+          detail: "cognitive neuroscientist (optimism bias)"
+        },
+        {
+          text: "I am proof that the brain can change — at any age.",
+          author: "Michael Merzenich",
+          detail: "neuroplasticity pioneer"
+        },
+        {
+          text: "I am witness to the brain’s ability to rewrite itself.",
+          author: "Norman Doidge",
+          detail: "psychiatrist & neuroplasticity writer"
+        },
+        {
+          text: "I am exploring how memory builds our inner maps.",
+          author: "Eleanor Maguire",
+          detail: "neuroscientist (memory & navigation)"
+        },
+        {
+          text: "I am chasing the engram — the trace of memory itself.",
+          author: "Karl Lashley",
+          detail: "early neuroscientist"
+        },
+        {
+          text: "I am studying memory to understand what remains of self.",
+          author: "Brenda Milner",
+          detail: "neuropsychologist (patient H.M.)"
+        },
+        {
+          text: "I am shaping a law of learning — cells that fire together wire together.",
+          author: "Donald Hebb",
+          detail: "psychologist & neural learning theorist"
+        },
+        {
+          text: "I am discovering two minds inside one brain.",
+          author: "Roger Sperry",
+          detail: "split-brain pioneer"
+        },
+        {
+          text: "I am showing the brain how to heal itself with illusion.",
+          author: "Vilayanur Ramachandran",
+          detail: "phantom limb research"
+        },
+        {
+          text: "I am searching for what makes each brain a unique self.",
+          author: "Susan Greenfield",
+          detail: "neuroscientist & consciousness thinker"
+        },
+        {
+          text: "I am revealing where speech finds its voice in the brain.",
+          author: "Paul Broca",
+          detail: "neurologist (language localization)"
+        },
+        {
+          text: "I am uncovering how the brain understands meaning.",
+          author: "Carl Wernicke",
+          detail: "neurologist (language comprehension)"
+        },
+        {
+          text: "I am drawing the brain’s territories — one area at a time.",
+          author: "Korbinian Brodmann",
+          detail: "neuroanatomist"
+        },
+        {
+          text: "I am illuminating the hidden forest of neurons.",
+          author: "Camillo Golgi",
+          detail: "neuroscientist & staining pioneer"
+        },
+        {
+          text: "I am attempting to build a brain from code.",
+          author: "Henry Markram",
+          detail: "neuroscientist (Blue Brain Project)"
+        },
+        {
+          text: "I am uncovering how metaphors shape the way we think.",
+          author: "George Lakoff",
+          detail: "cognitive linguist & brain-mind theorist"
+        },
+        {
+          text: "I am rooting philosophy in the living brain.",
+          author: "Patricia Churchland",
+          detail: "neurophilosopher"
+        },
+        {
+          text: "I am more than my brain — I am a mind in motion.",
+          author: "Andy Clark",
+          detail: "cognitive scientist (extended mind)"
+        },
+        {
+          text: "I am studying the fast and slow minds within us.",
+          author: "Daniel Kahneman",
+          detail: "psychologist & decision-science pioneer"
+        },
+        {
+          text: "I am showing how brilliant minds can still think in biased ways.",
+          author: "Amos Tversky",
+          detail: "cognitive psychologist"
+        },
+        {
+          text: "I am revealing how memory is not a record — but a story we rewrite.",
+          author: "Elizabeth Loftus",
+          detail: "memory researcher"
+        },
+        {
+          text: "I am tracing how we focus the mind’s spotlight.",
+          author: "Michael Posner",
+          detail: "attention neuroscientist"
+        },
+        {
+          text: "I am fascinated by how the mind shapes words — and words shape mind.",
+          author: "Steven Pinker",
+          detail: "cognitive scientist & language researcher"
+        },
+        {
+          text: "I am exploring the structure of the mind through language.",
+          author: "Noam Chomsky",
+          detail: "linguist & cognitive theorist"
+        },
+        {
+          text: "I am a hallucination — controlled by the brain.",
+          author: "Anil Seth",
+          detail: "neuroscientist (consciousness & perception)"
+        },
+        {
+          text: "I am convinced the brain stores reality in patterns.",
+          author: "Karl Pribram",
+          detail: "neuroscientist (holonomic brain theory)"
+        },
+        {
+          text: "I am uncovering how experience sculpts the brain.",
+          author: "Colin Blakemore",
+          detail: "neuroscientist (vision & development)"
+        },
+        {
+          text: "I am quantifying consciousness — one bit at a time.",
+          author: "Giulio Tononi",
+          detail: "neuroscientist (Integrated Information Theory)"
+        },
+        {
+          text: "I am listening to how neurons see light.",
+          author: "Christina Enroth-Cugell",
+          detail: "neuroscientist (retina & vision)"
+        },
+        {
+          text: "I am guided by the rhythm of neurons — the music of life.",
+          author: "Rodolfo Llinás",
+          detail: "neuroscientist"
+        },
+        {
+          text: "I am studying the ancient emotional brain that lives in all of us.",
+          author: "Jaak Panksepp",
+          detail: "affective neuroscientist (emotion systems)"
+        },
+        {
+          text: "I am exploring how the young brain learns control and possibility.",
+          author: "Adele Diamond",
+          detail: "developmental cognitive neuroscientist"
+        },
+        {
+          text: "I am showing how intuition can be a brilliant tool.",
+          author: "Gerd Gigerenzer",
+          detail: "decision-science researcher"
+        },
+        {
+          text: "I am relentless in my search for the seat of memory.",
+          author: "Karl Lashley",
+          detail: "learning & behavior"
+        },
+        {
+          text: "We are revealing how the brain learns to see lines — and then the world.",
+          author: "Hubel & Wiesel",
+          detail: "visual cortex pioneers"
+        },
+        {
+          text: "I am uncovering a new form of life — protein that thinks like a virus.",
+          author: "Stanley Prusiner",
+          detail: "neurologist (prions)"
+        },
+        {
+          text: "I am proof that different brains see the world differently — and beautifully.",
+          author: "Temple Grandin",
+          detail: "animal behavior & autism thinker"
+        },
+        {
+          text: "I am studying the cost of minds pushed beyond their limits.",
+          author: "Christina Maslach",
+          detail: "psychologist (burnout researcher)"
+        },
+        {
+          text: "I am mapping how the brain chooses what matters.",
+          author: "Sabine Kastner",
+          detail: "neuroscientist (attention networks)"
+        },
+        {
+          text: "I am exploring how training reshapes attention and capacity.",
+          author: "Torkel Klingberg",
+          detail: "cognitive neuroscientist (working memory & learning)"
+        },
+        {
+          text: "I am shining light into the brain — literally and metaphorically.",
+          author: "Karl Deisseroth",
+          detail: "neuroscientist (optogenetics & psychiatry)"
+        },
+        {
+          text: "I am building tools to see and change the brain.",
+          author: "Ed Boyden",
+          detail: "neuroscientist (neural engineering)"
+        },
+        {
+          text: "I am discovering how brains — big and small — build minds.",
+          author: "Giorgio Vallortigara",
+          detail: "cognitive neuroscientist (animal cognition)"
+        },
+        {
+          text: "I am uncovering the roots of brain disorders in our DNA.",
+          author: "Huda Zoghbi",
+          detail: "neurologist & genetics researcher"
+        },
+        {
+          text: "I am studying how neurons speak to one another.",
+          author: "Thomas Südhof",
+          detail: "neuroscientist (synapses & communication)"
+        },
+        {
+          text: "I am exploring the strange kinship between genius and vulnerability.",
+          author: "Nancy Andreasen",
+          detail: "psychiatrist & creativity researcher"
+        },
+        {
+          text: "I am revealing the brain’s inner GPS.",
+          author: "John O’Keefe",
+          detail: "neuroscientist (place cells)"
+        },
+        {
+          text: "I am mapping the mind’s invisible coordinates.",
+          author: "May-Britt Moser",
+          detail: "neuroscientist (grid cells)"
+        },
+        {
+          text: "I am discovering how the brain measures space.",
+          author: "Edvard Moser",
+          detail: "neuroscientist (grid cell research)"
+        },
+        {
+          text: "I am fascinated by how the brain learns from change.",
+          author: "Agnieszka Słowińska",
+          detail: "cognitive neuroscientist (learning & adaptation)"
+        },
+        {
+          text: "I am convinced the mind can transcend biology.",
+          author: "Ray Kurzweil",
+          detail: "futurist & brain-emulation thinker"
+        },
+        {
+          text: "I am modeling intelligence as prediction.",
+          author: "Jeff Hawkins",
+          detail: "computational neuroscientist (HTM theory)"
+        },
+        {
+          text: "I am guided by the brain as the blueprint for learning machines.",
+          author: "Yoshua Bengio",
+          detail: "AI & brain-inspired learning researcher"
+        },
+        {
+          text: "I am inspired by how the brain learns — layer by layer.",
+          author: "Geoffrey Hinton",
+          detail: "deep learning pioneer"
+        },
+        {
+          text: "I am bridging brain, mind, and machine.",
+          author: "Terrence Sejnowski",
+          detail: "computational neuroscientist"
+        },
+        {
+          text: "I am chasing the moment when a neuron sparks and a thought is born.",
+          author: "Christina Reasearcher",
+          detail: "fictional lab-protagonist vibe"
+        },
+        {
+          text: "I am building machines that dream of neurons.",
+          author: "Neuro-AI Lab Lead",
+          detail: "fictional / game-style"
+        },
+        {
+          text: "I am the architect of minds remade in circuits and cells.",
+          author: "Cyber-neurosurgeon",
+          detail: "fictional sci-future"
+        },
+        {
+          text: "I am mapping consciousness across biology and code.",
+          author: "Virtual cognition researcher",
+          detail: "fictional"
+        },
+        {
+          text: "I am proof that intelligence can evolve in more than one form.",
+          author: "AI-neural scientist character",
+          detail: "fictional world"
+        },
+        {
+          text: "I am not in this world to live up to your expectations — I am becoming myself.",
+          author: "Bruce Lee",
+          detail: "martial artist and philosopher"
+        },
+        {
+          text: "I am the one who turns sound into fire.",
+          author: "Jimi Hendrix",
+          detail: "guitarist and musician"
+        },
+        {
+          text: "I am guided by curiosity — that’s where progress comes from.",
+          author: "Bill Gates",
+          detail: "technologist and philanthropist"
+        },
+        {
+          text: "I am writing my own story — one verse at a time.",
+          author: "Macklemore",
+          detail: "rapper"
+        },
+        {
+          text: "I am here to make music bigger than fear.",
+          author: "Quincy Jones",
+          detail: "producer and arranger"
+        },
+        {
+          text: "I am what I am — and I won’t pretend otherwise.",
+          author: "Kurt Cobain",
+          detail: "musician"
+        },
+        {
+          text: "I am a voice that refuses to fade.",
+          author: "Ann Wilson",
+          detail: "rock singer"
+        },
+        {
+          text: "I am fueled by wonder — and I want the world to feel it too.",
+          author: "Bill Nye",
+          detail: "science educator"
+        },
+        {
+          text: "I am standing in my truth — unapologetically.",
+          author: "Angela Rye",
+          detail: "political commentator"
+        },
+        {
+          text: "I am built on work, discipline, and belief.",
+          author: "Sue Bird",
+          detail: "basketball legend"
+        },
+        {
+          text: "I am a small part of a great awakening nation.",
+          author: "Jawaharlal Nehru",
+          detail: "prime minister and statesman"
+        },
+        {
+          text: "I am here not to be liked — but to serve my purpose.",
+          author: "Indira Gandhi",
+          detail: "political leader"
+        },
+        {
+          text: "I am the change I wish to see in the world.",
+          author: "Mahatma Gandhi",
+          detail: "independence leader"
+        },
+        {
+          text: "I am a spark seeking its infinite sky.",
+          author: "Rabindranath Tagore",
+          detail: "poet and philosopher"
+        },
+        {
+          text: "I am powered by dreams — and disciplined by action.",
+          author: "A. P. J. Abdul Kalam",
+          detail: "scientist and president"
+        },
+        {
+          text: "I am my own source of inspiration.",
+          author: "Amrita Sher-Gil",
+          detail: "painter"
+        },
+        {
+          text: "I am a witness to humanity — and I bring it to the screen.",
+          author: "Satyajit Ray",
+          detail: "filmmaker"
+        },
+        {
+          text: "I am guided by integrity — not applause.",
+          author: "Ratan Tata",
+          detail: "industrialist and philanthropist"
+        },
+        {
+          text: "I am proof that the sky is not the limit.",
+          author: "Kalpana Chawla",
+          detail: "astronaut"
+        },
+        {
+          text: "I am drawn to the places where power fractures — and voices rise.",
+          author: "Arundhati Roy",
+          detail: "writer"
+        },
+        {
+          text: "I am rhythm — living through my hands.",
+          author: "Zakir Hussain",
+          detail: "tabla virtuoso"
+        },
+        {
+          text: "I am a voice carried across generations.",
+          author: "Lata Mangeshkar",
+          detail: "singer"
+        },
+        {
+          text: "I am relentless — pressure sharpens me.",
+          author: "Virat Kohli",
+          detail: "cricketer"
+        },
+        {
+          text: "I am stronger than every doubt I’ve faced.",
+          author: "Mary Kom",
+          detail: "boxer"
+        },
+        {
+          text: "I am unafraid to tell the stories that unsettle.",
+          author: "Deepa Mehta",
+          detail: "filmmaker"
+        },
+        {
+          text: "I am the sum of a lifetime of roles — and I still evolve.",
+          author: "Amitabh Bachchan",
+          detail: "actor"
+        },
+        {
+          text: "I am enough — and I make space for my own power.",
+          author: "Priyanka Chopra Jonas",
+          detail: "actor and producer"
+        },
+        {
+          text: "I am building systems that outlast individuals.",
+          author: "Nandan Nilekani",
+          detail: "technologist"
+        },
+        {
+          text: "I am proof that generosity is also strength.",
+          author: "Sudha Murty",
+          detail: "writer and philanthropist"
+        },
+        {
+          text: "I am certain that great nations dream beyond gravity.",
+          author: "Vikram Sarabhai",
+          detail: "space program pioneer"
+        },
+        {
+          text: "I am driven by an insatiable desire to know.",
+          author: "Leonardo da Vinci",
+          detail: "polymath"
+        },
+        {
+          text: "I am still learning — and still reaching higher.",
+          author: "Michelangelo",
+          detail: "sculptor and painter"
+        },
+        {
+          text: "I am the one who walked through darkness to find meaning.",
+          author: "Dante Alighieri",
+          detail: "poet"
+        },
+        {
+          text: "I am guided by reason — even when the world resists it.",
+          author: "Galileo Galilei",
+          detail: "scientist and astronomer"
+        },
+        {
+          text: "I am a student of power — and I speak its truths plainly.",
+          author: "Niccolò Machiavelli",
+          detail: "political thinker"
+        },
+        {
+          text: "I am not afraid of time — my mind is my youth.",
+          author: "Rita Levi-Montalcini",
+          detail: "neurologist and Nobel laureate"
+        },
+        {
+          text: "I am a dreamer — and my films are my dreams made visible.",
+          author: "Federico Fellini",
+          detail: "film director"
+        },
+        {
+          text: "I am elegance shaped by discipline.",
+          author: "Giorgio Armani",
+          detail: "fashion designer"
+        },
+        {
+          text: "I am confidence — earned through experience.",
+          author: "Sophia Loren",
+          detail: "actor"
+        },
+        {
+          text: "I am music that speaks when words fall silent.",
+          author: "Ennio Morricone",
+          detail: "composer"
+        },
+        {
+          text: "I am proof that faith and sound can travel beyond sight.",
+          author: "Andrea Bocelli",
+          detail: "tenor"
+        },
+        {
+          text: "I am a voice born to fill vast spaces.",
+          author: "Luciano Pavarotti",
+          detail: "opera singer"
+        },
+        {
+          text: "I am devoted to beauty — uncompromisingly.",
+          author: "Valentino Garavani",
+          detail: "fashion designer"
+        },
+        {
+          text: "I am bold — because life deserves color.",
+          author: "Gianni Versace",
+          detail: "fashion designer"
+        },
+        {
+          text: "I am loyal — to my city and to my game.",
+          author: "Francesco Totti",
+          detail: "football legend"
+        },
+        {
+          text: "I am resilience — even in defeat.",
+          author: "Roberto Baggio",
+          detail: "footballer"
+        },
+        {
+          text: "I am a traveler between Earth and stars.",
+          author: "Samantha Cristoforetti",
+          detail: "astronaut"
+        },
+        {
+          text: "I am humbled — yet inspired — by the fabric of reality.",
+          author: "Carlo Rovelli",
+          detail: "theoretical physicist"
+        },
+        {
+          text: "I am fascinated by how meaning multiplies.",
+          author: "Umberto Eco",
+          detail: "writer and semiotician"
+        },
+        {
+          text: "I am a voice that speaks from behind the page — and still feels true.",
+          author: "Elena Ferrante",
+          detail: "novelist"
+        },
+        {
+          text: "I am driven by the belief that purpose builds greatness.",
+          author: "Howard Schultz",
+          detail: "entrepreneur"
+        },
+        {
+          text: "I am fueled by curiosity and imagination.",
+          author: "Paul Allen",
+          detail: "technology founder and philanthropist"
+        },
+        {
+          text: "I am defined by a growth mindset.",
+          author: "Satya Nadella",
+          detail: "technology leader"
+        },
+        {
+          text: "I am committed to serving with integrity.",
+          author: "Norm Rice",
+          detail: "civic leader"
+        },
+        {
+          text: "I am proof that leadership requires courage.",
+          author: "Bertha Knight Landes",
+          detail: "mayor and reformer"
+        },
+        {
+          text: "I am proof that ethics and ambition can walk together.",
+          author: "N. R. Narayana Murthy",
+          detail: "technology founder"
+        },
+        {
+          text: "I am driven by discovery and purpose.",
+          author: "Kiran Mazumdar-Shaw",
+          detail: "biotechnology entrepreneur"
+        },
+        {
+          text: "I am hope, hard work, and relentless reinvention.",
+          author: "Shah Rukh Khan",
+          detail: "actor"
+        },
+        {
+          text: "I am confidence shaped by discipline.",
+          author: "Aishwarya Rai Bachchan",
+          detail: "actor"
+        },
+        {
+          text: "I am guided by principle over convenience.",
+          author: "Raghuram Rajan",
+          detail: "economist"
+        },
+        {
+          text: "I am most myself when I am between worlds.",
+          author: "Pico Iyer",
+          detail: "essayist and traveler"
+        },
+        {
+          text: "I am a witness to history — and its echoes in us.",
+          author: "Amitav Ghosh",
+          detail: "writer"
+        },
+        {
+          text: "I am shaped by service and responsibility.",
+          author: "Giorgio Napolitano",
+          detail: "statesman"
+        },
+        {
+          text: "I am devoted to the dignity of public life.",
+          author: "Sergio Mattarella",
+          detail: "president"
+        },
+        {
+          text: "I am steady when the world demands stability.",
+          author: "Mario Draghi",
+          detail: "economist and public servant"
+        },
+        {
+          text: "I am drawn to the beauty hidden in contradiction.",
+          author: "Paolo Sorrentino",
+          detail: "film director"
+        },
+        {
+          text: "I am honest with my stories — and with myself.",
+          author: "Nanni Moretti",
+          detail: "filmmaker"
+        },
+        {
+          text: "I am a voice carried by emotion and time.",
+          author: "Eros Ramazzotti",
+          detail: "singer"
+        },
+        {
+          text: "I am strength born from vulnerability.",
+          author: "Laura Pausini",
+          detail: "singer"
+        },
+        {
+          text: "I am joy — even in the face of struggle.",
+          author: "Roberto Benigni",
+          detail: "actor and director"
+        },
+        {
+          text: "I am curiosity turned into design.",
+          author: "Miuccia Prada",
+          detail: "fashion designer"
+        },
+        {
+          text: "I am memory reinvented on a plate.",
+          author: "Massimo Bottura",
+          detail: "chef"
+        },
+        {
+          text: "I am proof that vision creates opportunity.",
+          author: "Chiara Ferragni",
+          detail: "entrepreneur and creator"
+        },
+        {
+          text: "I am calm — because clarity is my strength.",
+          author: "Andrea Pirlo",
+          detail: "footballer and coach"
+        },
+        {
+          text: "I am shaped by conviction and resolve.",
+          author: "Giorgia Meloni",
+          detail: "political leader"
+        },
+        {
+          text: "I am grace built through perseverance.",
+          author: "Francesca Hayward",
+          detail: "dancer"
+        },
+        {
+          text: "I am rooted in the power of living systems.",
+          author: "Vandana Shiva",
+          detail: "environmental thinker"
+        },
+        {
+          text: "I am bold because beauty deserves expression.",
+          author: "Rohit Bal",
+          detail: "fashion designer"
+        },
+        {
+          text: "I am a believer in sound that transcends borders.",
+          author: "A. R. Rahman",
+          detail: "composer"
+        },
+        {
+          text: "I am proof that dreams can leave Earth and keep going.",
+          author: "Kalpana Chawla",
+          detail: "astronaut"
+        },
+        {
+          text: "Быть человеком между людьми и остаться человеком — это и есть достоинство.",
+          author: "Фёдор Достоевский",
+          detail: "писатель"
+        },
+        {
+          text: "Человек есть тайна. Её надо разгадать, и если будешь разгадывать всю жизнь — не скажешь, что потерял время.",
+          author: "Фёдор Достоевский",
+          detail: "писатель"
+        },
+        {
+          text: "Главное — не лгать самому себе.",
+          author: "Фёдор Достоевский",
+          detail: "писатель"
+        },
+        {
+          text: "Не всякая душа одинаково способна чувствовать своё достоинство.",
+          author: "Николай Гоголь",
+          detail: "писатель"
+        },
+        {
+          text: "В человеке всё должно быть прекрасно — и лицо, и одежда, и душа, и мысли.",
+          author: "Николай Гоголь",
+          detail: "писатель"
+        },
+        {
+          text: "Сила человека в сознании своего достоинства.",
+          author: "Лев Толстой",
+          detail: "писатель"
+        },
+        {
+          text: "Уважение к себе — основа всякого истинного мужества.",
+          author: "Иван Тургенев",
+          detail: "писатель"
+        },
+        {
+          text: "В человеке должно быть всё прекрасно — и душа, и мысли, и чувства.",
+          author: "Антон Чехов",
+          detail: "писатель"
+        },
+        {
+          text: "Человек рождается для света — и не должен унижать себя тьмой.",
+          author: "Александр Блок",
+          detail: "поэт"
+        },
+        {
+          text: "Я — имя себе сама.",
+          author: "Марина Цветаева",
+          detail: "поэт"
+        },
+        {
+          text: "Не выходи из комнаты, не совершай ошибку.",
+          author: "Иосиф Бродский",
+          detail: "поэт"
+        },
+        {
+          text: "Я слово позабыл, что я хотел сказать.",
+          author: "Осип Мандельштам",
+          detail: "поэт"
+        },
+        {
+          text: "Человек без достоинства существовать не может.",
+          author: "Михаил Булгаков",
+          detail: "писатель"
+        },
+        {
+          text: "Человек — это звучит гордо.",
+          author: "Максим Горький",
+          detail: "писатель"
+        },
+        {
+          text: "Человеческое достоинство — это внутренний свет человека.",
+          author: "Василий Гроссман",
+          detail: "писатель"
+        },
+        {
+          text: "Душа человека — больше его судьбы.",
+          author: "Андрей Платонов",
+          detail: "писатель"
+        },
+        {
+          text: "Во всём мне хочется дойти до самой сути.",
+          author: "Борис Пастернак",
+          detail: "писатель"
+        },
+        {
+          text: "Я голос ваш, горячий и печальный.",
+          author: "Анна Ахматова",
+          detail: "поэт"
+        },
+        {
+          text: "Мужество — это верность себе.",
+          author: "Исаак Бабель",
+          detail: "писатель"
+        },
+        {
+          text: "Человек живёт в себе — и это его истинное пространство.",
+          author: "Владимир Набоков",
+          detail: "писатель"
+        },
+        {
+          text: "Even in the darkest rooms, I am still trying to find a self that endures.",
+          author: "Ian Curtis",
+          detail: "post-punk singer"
+        },
+        {
+          text: "You hold your ground inside — that’s where your strength begins.",
+          author: "Peter Hook",
+          detail: "musician"
+        },
+        {
+          text: "Self-belief is fragile — but it’s the engine that keeps you moving.",
+          author: "Bernard Sumner",
+          detail: "musician"
+        },
+        {
+          text: "I don’t shrink to fit a world that doubts me — I grow into my own shape.",
+          author: "Siouxsie Sioux",
+          detail: "singer"
+        },
+        {
+          text: "Even when I feel uncertain, I refuse to vanish from myself.",
+          author: "Robert Smith",
+          detail: "singer"
+        },
+        {
+          text: "You stand your ground — that’s worth more than anyone else’s approval.",
+          author: "Mark E. Smith",
+          detail: "singer"
+        },
+        {
+          text: "They can doubt me — what matters is that I don’t doubt myself.",
+          author: "John Lydon",
+          detail: "singer"
+        },
+        {
+          text: "My voice belongs to me — and so does the meaning I give it.",
+          author: "Elizabeth Fraser",
+          detail: "vocalist"
+        },
+        {
+          text: "A person must stand inside their own dignity — or the world will take it from them.",
+          author: "Nick Cave",
+          detail: "singer and writer"
+        },
+        {
+          text: "Identity is built from the courage not to disappear.",
+          author: "Blixa Bargeld",
+          detail: "musician"
+        },
+        {
+          text: "Even in shadows, I hold on to the self that refuses to crumble.",
+          author: "Peter Murphy",
+          detail: "singer"
+        },
+        {
+          text: "Self-worth is the sound that keeps echoing after the noise fades.",
+          author: "Daniel Ash",
+          detail: "musician"
+        },
+        {
+          text: "You carry your value inside you — no one else can write it for you.",
+          author: "Stuart Adamson",
+          detail: "guitarist and singer"
+        },
+        {
+          text: "Stand firm in who you are — that’s the real rebellion.",
+          author: "Paul Simonon",
+          detail: "bassist"
+        },
+        {
+          text: "Strength is knowing your place inside the chaos — and keeping it.",
+          author: "John McGeoch",
+          detail: "guitarist"
+        },
+        {
+          text: "I don’t ask permission to exist — I claim my space.",
+          author: "Debbie Harry",
+          detail: "singer"
+        },
+        {
+          text: "Self-respect is the one thing you never bargain away.",
+          author: "Chrissie Hynde",
+          detail: "singer"
+        },
+        {
+          text: "A person who knows his own worth cannot be erased.",
+          author: "Howard Devoto",
+          detail: "singer"
+        },
+        {
+          text: "You shape your identity quietly — note by note, choice by choice.",
+          author: "Tom Verlaine",
+          detail: "guitarist and singer"
+        },
+        {
+          text: "I refuse to abandon myself — that is my strength.",
+          author: "Lydia Lunch",
+          detail: "performance artist"
+        },
+        {
+          text: "Человек становится лучше, когда начинает уважать самого себя.",
+          author: "Антон Чехов",
+          detail: "писатель"
+        },
+        {
+          text: "Есть только одна крепость — крепость духа.",
+          author: "Лев Толстой",
+          detail: "писатель"
+        },
+        {
+          text: "Презирающий себя человек — уже побеждён.",
+          author: "Фёдор Достоевский",
+          detail: "писатель"
+        },
+        {
+          text: "Не унижай себя перед другими — душа твоя не меньше их.",
+          author: "Николай Гоголь",
+          detail: "писатель"
+        },
+        {
+          text: "Достоинство — тихая сила, которая держит человека прямо.",
+          author: "Иван Бунин",
+          detail: "писатель"
+        },
+        {
+          text: "Человек крепнет, когда говорит себе: я себя не предам.",
+          author: "Александр Куприн",
+          detail: "писатель"
+        },
+        {
+          text: "Цена человека — внутри него самого.",
+          author: "Николай Лесков",
+          detail: "писатель"
+        },
+        {
+          text: "Даже в страдании душа хранит свою благородность.",
+          author: "Иван Шмелёв",
+          detail: "писатель"
+        },
+        {
+          text: "Первая революция совершается внутри человека.",
+          author: "Александр Герцен",
+          detail: "писатель и мыслитель"
+        },
+        {
+          text: "Уважение к человеку начинается с уважения к себе.",
+          author: "Виссарион Белинский",
+          detail: "критик"
+        },
+        {
+          text: "You hold yourself together — and that is already resistance.",
+          author: "Rowland S. Howard",
+          detail: "guitarist"
+        },
+        {
+          text: "Self-belief is fragile, yes — but it is still a fortress.",
+          author: "Gavin Friday",
+          detail: "singer and composer"
+        },
+        {
+          text: "You define your worth in the choices you refuse to abandon.",
+          author: "Colin Newman",
+          detail: "singer"
+        },
+        {
+          text: "In uncertainty, I still protect my own center.",
+          author: "Graham Lewis",
+          detail: "musician"
+        },
+        {
+          text: "Self-value grows when you stop letting others write your story.",
+          author: "Green Gartside",
+          detail: "singer"
+        },
+        {
+          text: "You build yourself piece by piece — and that structure matters.",
+          author: "David Byrne",
+          detail: "singer and artist"
+        },
+        {
+          text: "Identity is a quiet confidence carried through movement and sound.",
+          author: "Mick Karn",
+          detail: "bassist"
+        },
+        {
+          text: "Even in doubt, I refuse to disappear from myself.",
+          author: "Ian McCulloch",
+          detail: "singer"
+        },
+        {
+          text: "Self-respect is the rhythm that keeps everything upright.",
+          author: "Rowland Gift",
+          detail: "singer"
+        },
+        {
+          text: "You hang on to your own worth — even when the world shrugs.",
+          author: "Paul Westerberg",
+          detail: "songwriter"
+        },
+        {
+          text: "Не позволяйте миру убеждать вас, что вы меньше, чем есть.",
+          author: "Иосиф Бродский",
+          detail: "поэт"
+        },
+        {
+          text: "Сохранить себя — вот самая отчаянная победа.",
+          author: "Марина Цветаева",
+          detail: "поэт"
+        },
+        {
+          text: "Моё достоинство осталось со мной — даже когда всё остальное отняли.",
+          author: "Анна Ахматова",
+          detail: "поэт"
+        },
+        {
+          text: "Человек жив, пока верит в своё призвание.",
+          author: "Борис Пастернак",
+          detail: "писатель"
+        },
+        {
+          text: "Добро к себе — это тоже мужество.",
+          author: "Василий Гроссман",
+          detail: "писатель"
+        },
+        {
+          text: "Человек — это звучит гордо.",
+          author: "Максим Горький",
+          detail: "писатель"
+        },
+        {
+          text: "Тот, кто знает свою цену, не склоняет голову зря.",
+          author: "Михаил Булгаков",
+          detail: "писатель"
+        },
+        {
+          text: "Уважай себя — без этого счастья не бывает.",
+          author: "Антон Чехов",
+          detail: "писатель"
+        },
+        {
+          text: "Высшая задача человека — стать достойным самого себя.",
+          author: "Фёдор Достоевский",
+          detail: "писатель"
+        },
+        {
+          text: "Сердце, помнящее своё достоинство, нельзя поработить.",
+          author: "Николай Гоголь",
+          detail: "писатель"
+        },
+        {
+          text: "I refuse to shrink — my self-worth is not negotiable.",
+          author: "Siouxsie Sioux",
+          detail: "singer"
+        },
+        {
+          text: "I stay present in myself — even when the world feels uncertain.",
+          author: "Robert Smith",
+          detail: "singer"
+        },
+        {
+          text: "Inside the struggle, I still search for a self that stands.",
+          author: "Ian Curtis",
+          detail: "singer"
+        },
+        {
+          text: "You walk upright through doubt — that is dignity.",
+          author: "Nick Cave",
+          detail: "singer and writer"
+        },
+        {
+          text: "Even in darkness, I hold my ground within.",
+          author: "Peter Murphy",
+          detail: "singer"
+        },
+        {
+          text: "Say what you are — stand by it — that is worth more than applause.",
+          author: "Mark E. Smith",
+          detail: "singer"
+        },
+        {
+          text: "My voice is my belonging — and I do not surrender it.",
+          author: "Elizabeth Fraser",
+          detail: "vocalist"
+        },
+        {
+          text: "Self-respect is the one line I never cross.",
+          author: "Chrissie Hynde",
+          detail: "singer"
+        },
+        {
+          text: "They can judge — but only I decide my own value.",
+          author: "John Lydon",
+          detail: "singer"
+        },
+        {
+          text: "A person survives by refusing to erase himself.",
+          author: "Howard Devoto",
+          detail: "singer"
+        },
+        {
+          text: "Человек становится лучше, когда учится относиться к себе с уважением.",
+          author: "Антон Чехов",
+          detail: "писатель"
+        },
+        {
+          text: "Глубочайшая сила — оставаться верным себе.",
+          author: "Лев Толстой",
+          detail: "писатель"
+        },
+        {
+          text: "Человеческое достоинство — сокровище, которое нельзя отнять, если ты сам его не отдашь.",
+          author: "Фёдор Достоевский",
+          detail: "писатель"
+        },
+        {
+          text: "Береги своё внутреннее достоинство — в нём истинная мера жизни.",
+          author: "Николай Гоголь",
+          detail: "писатель"
+        },
+        {
+          text: "I like twinks",
+          author: "Kseniia Filatova",
+          detail: "designer"
+        }
+      ];
+
+      const quoteEndings = [
+        "!!",
+        ",..",
+        ".........",
+        "??",
+        "!!!!!!!",
+        "!?!?",
+        "..",
+        "....",
+        "...!",
+        ":)",
+        "(:",
+        ":D",
+        ":O",
+        "=]",
+        "B-)",
+        "...",
+        "...?",
+        ";"
+      ];
+
+      const welcomeWords = [
+        "dear",
+        "buddy",
+        "pal",
+        "bestie",
+        "friend",
+        "homie",
+        "bro",
+        "sis",
+        "twin",
+        "boo",
+        "cutie",
+        "sunshine",
+        "superstar",
+        "legend",
+        "rockstar",
+        "champ",
+        "chief",
+        "tiger",
+        "sport",
+        "genius",
+        "brainiac",
+        "hero",
+        "star",
+        "cool cat",
+        "goofball",
+        "peanut",
+        "jellybean",
+        "angel",
+        "favorite human",
+        "smarty",
+        "bff",
+        "big brain",
+        "main character",
+        "icon",
+        "slay-queen",
+        "slay-king",
+        "bestie vibes",
+        "real one",
+        "partner-in-crime",
+        "goat",
+        "w friend",
+        "mvp",
+        "trendsetter",
+        "energy-giver",
+        "chaos gremlin",
+        "big bean",
+        "softie",
+        "sunshine child",
+        "comfort person",
+        "golden soul",
+        "spark plug",
+        "firecracker",
+        "wild card",
+        "chill one",
+        "cozy buddy",
+        "funny one",
+        "overmaker-in-chief",
+        "internet twin",
+        "vibe twin",
+        "best-of-the-group",
+        "troublemaker",
+        "twinkii",
+        "smarty pants",
+        "the cool one",
+        "dude",
+        "s",
+        "pathomenon",
+        "mr.",
+        "high potential",
+        "over achiever",
+        "my love",
+        "my sun",
+        "my everything",
+        "beauty",
+        "handsome",
+        "pre-phd",
+        "rose holder",
+        "2cool4school"
+      ];
+
+      function numberToWords(value) {
+        if (value < 20) {
+          return ones[value];
+        }
+
+        if (value < 100) {
+          const ten = Math.floor(value / 10);
+          const unit = value % 10;
+          return unit ? `${tens[ten]}-${ones[unit]}` : tens[ten];
+        }
+
+        if (value < 1000) {
+          const hundred = Math.floor(value / 100);
+          const remainder = value % 100;
+          return remainder
+            ? `${ones[hundred]} hundred ${numberToWords(remainder)}`
+            : `${ones[hundred]} hundred`;
+        }
+
+        if (value < 10000) {
+          const thousand = Math.floor(value / 1000);
+          const remainder = value % 1000;
+          return remainder
+            ? `${ones[thousand]} thousand ${numberToWords(remainder)}`
+            : `${ones[thousand]} thousand`;
+        }
+
+        return String(value);
+      }
+
+      function getDayOfYear(date) {
+        const start = new Date(date.getFullYear(), 0, 0);
+        const diff = date - start;
+        return Math.floor(diff / 86400000);
+      }
+
+      function seededRandom(seed) {
+        let value = seed % 2147483647;
+        if (value <= 0) value += 2147483646;
+        return () => {
+          value = (value * 16807) % 2147483647;
+          return (value - 1) / 2147483646;
+        };
+      }
+
+      function getShuffledQuotes(year) {
+        const list = quotes.slice();
+        const random = seededRandom(year + 364);
+        for (let i = list.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(random() * (i + 1));
+          [list[i], list[j]] = [list[j], list[i]];
+        }
+        return list;
+      }
+
+      function pickDailyQuote() {
+        const today = new Date();
+        const dayIndex = getDayOfYear(today) - 1;
+        if (dayIndex >= quotes.length) {
+          return null;
+        }
+        const shuffled = getShuffledQuotes(today.getFullYear());
+        return { quote: shuffled[dayIndex], dayIndex };
+      }
+
+      function applyQuoteEnding(text, seed) {
+        const cleaned = text
+          .trim()
+          .replace(/["'“”‘’]+$/g, "")
+          .replace(/[.!?…,:;]+$/g, "")
+          .trim();
+        const random = seededRandom(seed);
+        const ending = quoteEndings[Math.floor(random() * quoteEndings.length)];
+        return `${cleaned} ${ending}`;
+      }
+
+      function buildDateLine() {
+        const today = new Date();
+        const month = numberToWords(today.getMonth() + 1);
+        const day = ordinalWords[today.getDate()];
+        return { month, day };
+      }
+
+      function buildTimeLine() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const hourWords = numberToWords(hours);
+        const minuteWords =
+          minutes === 0 ? "zero" : numberToWords(minutes);
+        return { time: hourWords, meridiem: minuteWords };
+      }
+
+      function renderText(targetId, text, options = {}) {
+        const container = document.getElementById(targetId);
+        container.innerHTML = "";
+        const letters = [];
+
+        const words = text.split(" ");
+
+        words.forEach((word, index) => {
+          const wordSpan = document.createElement("span");
+          wordSpan.className = "word";
+
+          [...word].forEach((char) => {
+            const span = document.createElement("span");
+            span.className = "letter";
+            span.textContent = char;
+            span.style.fontFamily =
+              fontStacks[Math.floor(Math.random() * fontStacks.length)];
+            if (options.typewriter) {
+              span.classList.add("letter-hidden");
+            }
+            wordSpan.appendChild(span);
+            letters.push(span);
+          });
+
+          container.appendChild(wordSpan);
+
+          if (index < words.length - 1) {
+            container.appendChild(document.createTextNode(" "));
+          }
+        });
+
+        return letters;
+      }
+
+      const date = buildDateLine();
+      const dailyQuote = pickDailyQuote();
+      let affirmationLetters = [];
+      if (dailyQuote) {
+        const displayQuote = applyQuoteEnding(
+          dailyQuote.quote.text,
+          new Date().getFullYear() * 400 + dailyQuote.dayIndex + 1
+        );
+        affirmationLetters = renderText("affirmation", displayQuote, {
+          typewriter: true
+        });
+        setupAuthorFlash(dailyQuote.quote.author, dailyQuote.quote.detail);
+        storeDailyRecord(dailyQuote.quote, todaySeed);
+      } else {
+        renderText("affirmation", "");
+        renderText("author", "");
+      }
+      const timeLine = buildTimeLine();
+
+      function setupAuthorFlash(authorName, detail) {
+        const authorEl = document.getElementById("author");
+        if (!authorEl) {
+          return;
+        }
+
+        const realText = `${authorName.toLowerCase()}, ${detail.toLowerCase()}`;
+        const placeholderText = `santino, ${detail.toLowerCase()}`;
+        let revealTimeout = null;
+
+        function renderAuthorText(text) {
+          renderText("author", text);
+          if (window.__updateAuthorBounds) {
+            window.__updateAuthorBounds();
+          }
+        }
+
+        function showReal(duration = 600) {
+          renderAuthorText(realText);
+          if (revealTimeout) {
+            window.clearTimeout(revealTimeout);
+          }
+          revealTimeout = window.setTimeout(() => {
+            renderAuthorText(placeholderText);
+          }, duration);
+        }
+
+        renderAuthorText(placeholderText);
+        authorEl.addEventListener("mouseenter", () => showReal(1200));
+        authorEl.addEventListener("mouseleave", () => {
+          renderAuthorText(placeholderText);
+        });
+        authorEl.addEventListener("click", () => showReal(1500));
+        authorEl.addEventListener("touchstart", () => showReal(1500));
+
+        window.setInterval(() => {
+          if (Math.random() < 0.08) {
+            showReal(300 + Math.random() * 300);
+          }
+        }, 1200);
+      }
+
+      function fitQuoteBlock() {
+        const block = document.getElementById("quote-block");
+        const quote = document.getElementById("affirmation");
+
+        if (!block || !quote) {
+          return;
+        }
+
+        if (!quote.dataset.baseSize) {
+          quote.dataset.baseSize = parseFloat(
+            window.getComputedStyle(quote).fontSize
+          );
+        }
+        const baseQuote = parseFloat(quote.dataset.baseSize);
+        const maxHeight = window.innerHeight * 0.56;
+        const maxWidth = block.clientWidth;
+        let scale = 1;
+        const minScale = 0.55;
+
+        function applyScale() {
+          quote.style.fontSize = `${baseQuote * scale}px`;
+        }
+
+        applyScale();
+        while (
+          (block.getBoundingClientRect().height > maxHeight ||
+            quote.scrollWidth > maxWidth ||
+            block.getBoundingClientRect().top < 0 ||
+            block.getBoundingClientRect().bottom > window.innerHeight) &&
+          scale > minScale
+        ) {
+          scale -= 0.05;
+          applyScale();
+        }
+      }
+
+      fitQuoteBlock();
+      window.addEventListener("resize", fitQuoteBlock);
+
+      function startAuthorScreensaver() {
+        const authorEl = document.getElementById("author");
+        if (!authorEl) {
+          return;
+        }
+
+        let x = 0;
+        let y = 0;
+        let vx = (Math.random() < 0.5 ? -1 : 1) * (10 + Math.random() * 12);
+        let vy = (Math.random() < 0.5 ? -1 : 1) * (10 + Math.random() * 12);
+        const padding = 8;
+        let lastTime = performance.now();
+
+        function getCorners() {
+          return [
+            document.getElementById("date"),
+            document.getElementById("day"),
+            document.getElementById("time"),
+            document.getElementById("meridiem")
+          ]
+            .map((el) => (el ? el.getBoundingClientRect() : null))
+            .filter(Boolean);
+        }
+
+        function intersects(a, b) {
+          return !(
+            a.right < b.left ||
+            a.left > b.right ||
+            a.bottom < b.top ||
+            a.top > b.bottom
+          );
+        }
+
+        function updateBounds() {
+          const rect = authorEl.getBoundingClientRect();
+          const maxX = window.innerWidth - rect.width - padding;
+          const maxY = window.innerHeight - rect.height - padding;
+          x = Math.min(Math.max(padding, x), Math.max(padding, maxX));
+          y = Math.min(Math.max(padding, y), Math.max(padding, maxY));
+          authorEl.style.left = `${x}px`;
+          authorEl.style.top = `${y}px`;
+        }
+
+        window.__updateAuthorBounds = updateBounds;
+
+        function initPosition() {
+          const rect = authorEl.getBoundingClientRect();
+          x = Math.max(
+            padding,
+            Math.random() * (window.innerWidth - rect.width - padding)
+          );
+          y = Math.max(
+            padding,
+            Math.random() * (window.innerHeight - rect.height - padding)
+          );
+          authorEl.style.left = `${x}px`;
+          authorEl.style.top = `${y}px`;
+        }
+
+        function step(now) {
+          const dt = Math.min(0.05, (now - lastTime) / 1000);
+          lastTime = now;
+
+          const rect = authorEl.getBoundingClientRect();
+          const maxX = window.innerWidth - rect.width - padding;
+          const maxY = window.innerHeight - rect.height - padding;
+          x += vx * dt;
+          y += vy * dt;
+
+          if (x <= padding || x >= maxX) {
+            vx *= -1;
+            x = Math.min(Math.max(padding, x), maxX);
+          }
+          if (y <= padding || y >= maxY) {
+            vy *= -1;
+            y = Math.min(Math.max(padding, y), maxY);
+          }
+
+          const current = {
+            left: x,
+            top: y,
+            right: x + rect.width,
+            bottom: y + rect.height
+          };
+
+          const corners = getCorners();
+          for (const corner of corners) {
+            if (intersects(current, corner)) {
+              const overlapX =
+                Math.min(current.right, corner.right) -
+                Math.max(current.left, corner.left);
+              const overlapY =
+                Math.min(current.bottom, corner.bottom) -
+                Math.max(current.top, corner.top);
+              if (overlapX < overlapY) {
+                vx *= -1;
+              } else {
+                vy *= -1;
+              }
+              break;
+            }
+          }
+
+          authorEl.style.left = `${x}px`;
+          authorEl.style.top = `${y}px`;
+
+          requestAnimationFrame(step);
+        }
+
+        initPosition();
+        requestAnimationFrame(step);
+        window.addEventListener("resize", () => {
+          initPosition();
+          updateBounds();
+        });
+      }
+
+      function startAuthorScreensaverWhenReady() {
+        const authorEl = document.getElementById("author");
+        if (!authorEl) {
+          return;
+        }
+        authorEl.style.opacity = "0";
+      }
+
+      function typewriterReveal(
+        letters,
+        { minDelay = 110, maxDelay = 230, startDelay = 0 } = {}
+      ) {
+        return new Promise((resolve) => {
+          let index = 0;
+
+          function tick() {
+            if (index >= letters.length) {
+              resolve();
+              return;
+            }
+
+            letters[index].classList.remove("letter-hidden");
+            index += 1;
+            window.setTimeout(
+              tick,
+              minDelay + Math.random() * (maxDelay - minDelay)
+            );
+          }
+
+          window.setTimeout(tick, startDelay);
+        });
+      }
+
+      function typewriterHide(
+        letters,
+        { minDelay = 60, maxDelay = 140, startDelay = 0 } = {}
+      ) {
+        return new Promise((resolve) => {
+          let index = letters.length - 1;
+
+          function tick() {
+            if (index < 0) {
+              resolve();
+              return;
+            }
+
+            letters[index].classList.add("letter-hidden");
+            index -= 1;
+            window.setTimeout(
+              tick,
+              minDelay + Math.random() * (maxDelay - minDelay)
+            );
+          }
+
+          window.setTimeout(tick, startDelay);
+        });
+      }
+
+      function blinkElement(element, flashes = 3, interval = 180) {
+        return new Promise((resolve) => {
+          if (!element) {
+            resolve();
+            return;
+          }
+
+          let count = 0;
+          element.style.visibility = "visible";
+
+          function toggle() {
+            element.style.visibility =
+              element.style.visibility === "hidden" ? "visible" : "hidden";
+            count += 1;
+            if (count >= flashes * 2) {
+              element.style.visibility = "visible";
+              resolve();
+              return;
+            }
+            window.setTimeout(toggle, interval);
+          }
+
+          window.setTimeout(toggle, interval);
+        });
+      }
+
+      function startLetterFXFor(containerSelector, options = {}) {
+        const letters = Array.from(
+          document.querySelectorAll(`${containerSelector} .letter`)
+        );
+        const effects =
+          options.effects || [
+            "fx-italic",
+            "fx-bold",
+            "fx-underline",
+            "fx-strike",
+            "fx-highlight"
+          ];
+        const burstRatio = options.burstRatio ?? 0.3;
+        const minDuration = options.minDuration ?? 450;
+        const maxDuration = options.maxDuration ?? 1150;
+        const minDelay = options.minDelay ?? 120;
+        const maxDelay = options.maxDelay ?? 340;
+        const wave = options.wave ?? false;
+        const wavePeriod = options.wavePeriod ?? 4000;
+
+        let stopped = false;
+
+        function trigger() {
+          if (stopped) {
+            return;
+          }
+          const now = performance.now();
+          const waveFactor = wave
+            ? 0.5 + 0.5 * Math.sin((now / wavePeriod) * Math.PI * 2)
+            : 1;
+          const burstSize = Math.max(
+            1,
+            Math.floor(letters.length * burstRatio * waveFactor)
+          );
+          for (let i = 0; i < burstSize; i += 1) {
+            const letter = letters[Math.floor(Math.random() * letters.length)];
+            const effect = effects[Math.floor(Math.random() * effects.length)];
+            const duration =
+              minDuration +
+              Math.random() * (maxDuration - minDuration) * (0.6 + waveFactor);
+
+            letter.classList.add(effect);
+            window.setTimeout(() => {
+              letter.classList.remove(effect);
+            }, duration);
+          }
+
+          const nextDelay =
+            (minDelay + Math.random() * (maxDelay - minDelay)) *
+            (1.3 - waveFactor);
+          window.setTimeout(trigger, nextDelay);
+        }
+
+        if (letters.length > 0) {
+          trigger();
+        }
+
+        return () => {
+          stopped = true;
+        };
+      }
+
+      function rollInHalo() {
+        return new Promise((resolve) => {
+          const stage = document.getElementById("stage");
+          const haloContainer = document.getElementById("halo-container");
+          if (!stage || !haloContainer) {
+            resolve();
+            return;
+          }
+
+          function onEnd(event) {
+            if (event.animationName === "halo-roll-in") {
+              haloContainer.removeEventListener("animationend", onEnd);
+              document.body.classList.add("halo-revealed");
+              resolve();
+            }
+          }
+
+          haloContainer.addEventListener("animationend", onEnd);
+          document.body.classList.add("halo-animate");
+        });
+      }
+
+      function runIntroBall() {
+        return new Promise((resolve) => {
+          const ball = document.getElementById("intro-ball");
+          if (!ball) {
+            resolve();
+            return;
+          }
+
+          const onEnd = () => {
+            ball.style.display = "none";
+            resolve();
+          };
+
+          window.setTimeout(() => {
+            ball.addEventListener("animationend", onEnd, { once: true });
+            ball.classList.add("animate");
+          }, 1000);
+        });
+      }
+
+      async function runIntroSequence() {
+        await runIntroBall();
+        const welcomeWord =
+          welcomeWords[Math.floor(Math.random() * welcomeWords.length)];
+        const welcomeLetters = renderText("welcome", `hi, ${welcomeWord}`, {
+          typewriter: true
+        });
+        await typewriterReveal(welcomeLetters, {
+          minDelay: 70,
+          maxDelay: 140,
+          startDelay: 0
+        });
+        await blinkElement(document.getElementById("welcome"), 3, 160);
+        await typewriterHide(welcomeLetters, {
+          minDelay: 50,
+          maxDelay: 120,
+          startDelay: 0
+        });
+        renderText("welcome", "");
+
+        await typewriterReveal(renderText("date", date.month, { typewriter: true }), {
+          minDelay: 60,
+          maxDelay: 110,
+          startDelay: 200
+        });
+        await typewriterReveal(renderText("day", date.day, { typewriter: true }), {
+          minDelay: 60,
+          maxDelay: 110,
+          startDelay: 120
+        });
+        await typewriterReveal(
+          renderText("time", timeLine.time, { typewriter: true }),
+          { minDelay: 60, maxDelay: 110, startDelay: 120 }
+        );
+        await typewriterReveal(
+          renderText("meridiem", timeLine.meridiem, { typewriter: true }),
+          { minDelay: 60, maxDelay: 110, startDelay: 120 }
+        );
+        await rollInHalo();
+        await typewriterReveal(affirmationLetters, {
+          minDelay: 110,
+          maxDelay: 230,
+          startDelay: 500
+        });
+        startLetterFXFor("#affirmation", {
+          burstRatio: 0.45,
+          minDuration: 220,
+          maxDuration: 520,
+          minDelay: 70,
+          maxDelay: 140,
+          wave: true,
+          wavePeriod: 4200
+        });
+        const authorEl = document.getElementById("author");
+        if (authorEl) {
+          authorEl.style.opacity = "1";
+        }
+        startAuthorScreensaver();
+        startSparkCycle();
+      }
+
+      startAuthorScreensaverWhenReady();
+      runIntroSequence();
+
+      function setupHaloPress() {
+        const scaleEl = document.getElementById("halo-scale");
+        if (!scaleEl) {
+          return;
+        }
+
+        let pressing = false;
+        let pressStart = 0;
+        let rafId = null;
+        const maxScale = 1.7;
+        const growthDuration = 1600;
+
+        function update(now) {
+          if (!pressing) {
+            return;
+          }
+          const elapsed = now - pressStart;
+          const t = Math.min(elapsed / growthDuration, 1);
+          const scale = 1 + t * (maxScale - 1);
+          scaleEl.style.setProperty("--press-scale", scale.toFixed(3));
+          rafId = requestAnimationFrame(update);
+        }
+
+        function startPress() {
+          pressing = true;
+          pressStart = performance.now();
+          scaleEl.style.transition = "none";
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+          }
+          rafId = requestAnimationFrame(update);
+        }
+
+        function endPress() {
+          pressing = false;
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+          }
+          scaleEl.style.transition =
+            "transform 0.6s cubic-bezier(0.2, 0.9, 0.2, 1.2)";
+          scaleEl.style.setProperty("--press-scale", "1");
+        }
+
+        scaleEl.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          startPress();
+        });
+        scaleEl.addEventListener("pointerup", endPress);
+        scaleEl.addEventListener("pointercancel", endPress);
+        scaleEl.addEventListener("pointerleave", endPress);
+      }
+
+      setupHaloPress();
+
+      function startSparkCycle() {
+        const spark = document.getElementById("spark");
+        if (!spark) {
+          return;
+        }
+
+        function placeSpark() {
+          const size = spark.getBoundingClientRect();
+          const maxX = window.innerWidth - size.width;
+          const maxY = window.innerHeight - size.height;
+          const x = Math.max(0, Math.random() * maxX);
+          const y = Math.max(0, Math.random() * maxY);
+          spark.style.left = `${x}px`;
+          spark.style.top = `${y}px`;
+        }
+
+        function showSpark() {
+          placeSpark();
+          spark.style.opacity = "1";
+          window.setTimeout(() => {
+            spark.style.opacity = "0";
+            window.setTimeout(showSpark, 9000);
+          }, 3000);
+        }
+
+        spark.style.opacity = "0";
+        showSpark();
+      }
+
+      function setupSparkOverlay() {
+        const spark = document.getElementById("spark");
+        const overlay = document.getElementById("overlay");
+        const overlayText = document.getElementById("overlay-text");
+        if (!spark || !overlay || !overlayText) {
+          return;
+        }
+
+        function yearProgressText() {
+          const now = new Date();
+          const start = new Date(now.getFullYear(), 0, 1);
+          const end = new Date(now.getFullYear() + 1, 0, 1);
+          const progress =
+            ((now - start) / (end - start)) * 100;
+          const pct = progress.toFixed(2);
+          return `this year is ${pct}% over. yet one thing never changes: santino is totally great—e.g. dope, cool, fire, etc. to further support their prime era, this website offers 365 affirmative statements. each day a new truthful message appears and is meant to be read aloud or at least aquiet—then it solidifies itself in the neural brain of the reader. background color smoothly changes by a fraction every day to celebrate the seasonal nature of psychiatric conditions. at the core of the typographic system is text recomposing itself into symbulacrum, hinting at the core core. all in all, no more info2share sry. enjoy your days, nights and unidentifiable timestamps throughout 2026!`;
+        }
+
+        function fitOverlayText() {
+          overlayText.style.transform = "scale(1)";
+          const rect = overlayText.getBoundingClientRect();
+          const maxW = window.innerWidth - 32;
+          const maxH = window.innerHeight - 32;
+          const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
+          overlayText.style.transform = `scale(${scale.toFixed(3)})`;
+        }
+
+        let stopOverlayFx = null;
+
+        function showOverlay() {
+          renderText("overlay-text", yearProgressText());
+          overlay.style.display = "flex";
+          overlay.setAttribute("aria-hidden", "false");
+          fitOverlayText();
+          if (stopOverlayFx) {
+            stopOverlayFx();
+          }
+          stopOverlayFx = startLetterFXFor("#overlay-text", {
+            effects: ["fx-italic", "fx-bold", "fx-underline", "fx-strike"],
+            burstRatio: 0.03,
+            minDuration: 900,
+            maxDuration: 1600,
+            minDelay: 900,
+            maxDelay: 1800
+          });
+        }
+
+        function hideOverlay() {
+          overlay.style.display = "none";
+          overlay.setAttribute("aria-hidden", "true");
+          if (stopOverlayFx) {
+            stopOverlayFx();
+            stopOverlayFx = null;
+          }
+        }
+
+        spark.addEventListener("click", showOverlay);
+        spark.addEventListener("touchstart", showOverlay);
+        overlay.addEventListener("click", hideOverlay);
+        overlay.addEventListener("touchstart", hideOverlay);
+        overlayText.addEventListener("mouseover", (event) => {
+          const target = event.target;
+          if (target && target.classList && target.classList.contains("letter")) {
+            target.classList.add("fx-highlight");
+            window.setTimeout(() => {
+              target.classList.remove("fx-highlight");
+            }, 9000);
+          }
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key && event.key.toLowerCase() === "m") {
+            if (overlay.style.display === "flex") {
+              hideOverlay();
+            } else {
+              showOverlay();
+            }
+          }
+        });
+        window.addEventListener("resize", () => {
+          if (overlay.style.display === "flex") {
+            fitOverlayText();
+          }
+        });
+      }
+
+      setupSparkOverlay();
+
+      const affirmationEl = document.getElementById("affirmation");
+      if (affirmationEl) {
+        affirmationEl.addEventListener("mouseover", (event) => {
+          const target = event.target;
+          if (target && target.classList && target.classList.contains("letter")) {
+            target.style.fontFamily =
+              fontStacks[Math.floor(Math.random() * fontStacks.length)];
+          }
+        });
+
+        affirmationEl.addEventListener("click", () => {
+          const letters = affirmationEl.querySelectorAll(".letter");
+          if (letters.length === 0) {
+            return;
+          }
+          const burstSize = Math.max(2, Math.floor(letters.length * 0.08));
+          for (let i = 0; i < burstSize; i += 1) {
+            const letter = letters[Math.floor(Math.random() * letters.length)];
+            letter.style.fontFamily =
+              fontStacks[Math.floor(Math.random() * fontStacks.length)];
+          }
+        });
+      }
+    </script>
+
+  </body>
+</html>
