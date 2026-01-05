@@ -103,10 +103,11 @@
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
-        width: 100%;
+        width: min(92vw, 60rem);
         text-align: center;
         z-index: 3;
         pointer-events: none;
+        padding: 0 1rem;
       }
 
       #author {
@@ -211,7 +212,7 @@
 
       #spark {
         position: fixed;
-        width: clamp(1.2rem, 2.5vw, 3rem);
+        width: clamp(1.44rem, 3vw, 3.6rem);
         aspect-ratio: 1;
         background: #1d0c05;
         opacity: 0;
@@ -3166,10 +3167,32 @@
         }
         startAuthorScreensaver();
         startSparkCycle();
+        startDateTimeTicker();
       }
 
       startAuthorScreensaverWhenReady();
       runIntroSequence();
+
+      function startDateTimeTicker() {
+        let lastKey = "";
+
+        function update() {
+          const dateLine = buildDateLine();
+          const timeLine = buildTimeLine();
+          const key = `${dateLine.month}-${dateLine.day}-${timeLine.time}-${timeLine.meridiem}`;
+          if (key === lastKey) {
+            return;
+          }
+          lastKey = key;
+          renderText("date", dateLine.month);
+          renderText("day", dateLine.day);
+          renderText("time", timeLine.time);
+          renderText("meridiem", timeLine.meridiem);
+        }
+
+        update();
+        window.setInterval(update, 1000);
+      }
 
       function setupHaloPress() {
         const scaleEl = document.getElementById("halo-scale");
@@ -3231,12 +3254,34 @@
           return;
         }
 
+        const stage = document.getElementById("stage");
+
         function placeSpark() {
           const size = spark.getBoundingClientRect();
           const maxX = window.innerWidth - size.width;
           const maxY = window.innerHeight - size.height;
-          const x = Math.max(0, Math.random() * maxX);
-          const y = Math.max(0, Math.random() * maxY);
+          const haloRect = stage ? stage.getBoundingClientRect() : null;
+          const centerX = haloRect ? haloRect.left + haloRect.width / 2 : 0;
+          const centerY = haloRect ? haloRect.top + haloRect.height / 2 : 0;
+          const radius = haloRect ? Math.min(haloRect.width, haloRect.height) / 2 : 0;
+
+          let x = 0;
+          let y = 0;
+          let attempts = 0;
+
+          do {
+            x = Math.max(0, Math.random() * maxX);
+            y = Math.max(0, Math.random() * maxY);
+            const sparkCenterX = x + size.width / 2;
+            const sparkCenterY = y + size.height / 2;
+            const dx = sparkCenterX - centerX;
+            const dy = sparkCenterY - centerY;
+            attempts += 1;
+            if (!haloRect || Math.hypot(dx, dy) > radius + 8) {
+              break;
+            }
+          } while (attempts < 20);
+
           spark.style.left = `${x}px`;
           spark.style.top = `${y}px`;
         }
@@ -3246,8 +3291,8 @@
           spark.style.opacity = "1";
           window.setTimeout(() => {
             spark.style.opacity = "0";
-            window.setTimeout(showSpark, 9000);
-          }, 3000);
+            window.setTimeout(showSpark, 5000);
+          }, 5000);
         }
 
         spark.style.opacity = "0";
